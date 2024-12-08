@@ -1,0 +1,20 @@
+package org.example.practice_todo.repository;
+
+import java.util.List;
+import org.example.practice_todo.dto.TodoResponseDto;
+import org.example.practice_todo.entity.Todo;
+
+public interface TodoRepository {
+  TodoResponseDto createTodo(Todo todo);
+
+  List<TodoResponseDto> findAllTodo();
+
+  List<TodoResponseDto> findAllTodoWithWriterName(String writerName);
+
+  List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate);
+
+  List<TodoResponseDto> findAllTodoWithWriterNameAndModifyDate(
+      String writerName, String modifyDate);
+
+  Todo findTodoByIdOrElseThrow(Long id);
+}
