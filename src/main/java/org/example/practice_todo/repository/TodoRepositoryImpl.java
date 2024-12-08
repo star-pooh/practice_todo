@@ -131,6 +131,39 @@ public class TodoRepositoryImpl implements TodoRepository {
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Does not exists id = " + id));
   }
 
+  /**
+   * 선택 일정 수정
+   *
+   * @param id         일정 ID
+   * @param contents   일정 내용
+   * @param writerName 작성자명
+   * @param password   패스워드
+   * @return 수정 결과
+   */
+  @Override
+  public int updateTodo(Long id, String contents, String writerName, String password) {
+    DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    String now = LocalDateTime.now().format(dateTimeFormatter);
+
+    return this.jdbcTemplate.update(
+        "UPDATE todo SET contents = ?, writer_name = ?, modify_date = ? WHERE id = ? AND password = ?",
+        contents, writerName, now, id, password);
+  }
+
+  /**
+   * 선택 일정 삭제
+   *
+   * @param id       일정 ID
+   * @param password 패스워드
+   * @return 삭제 결과
+   */
+  @Override
+  public int deleteTodo(Long id, String password) {
+    return this.jdbcTemplate.update(
+        "DELETE FROM todo WHERE id = ? AND password = ?", id, password
+    );
+  }
+
   private RowMapper<TodoResponseDto> todoResponseRowMapper() {
     return new RowMapper<TodoResponseDto>() {
       @Override

@@ -6,7 +6,9 @@ import org.example.practice_todo.dto.TodoResponseDto;
 import org.example.practice_todo.service.TodoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +32,7 @@ public class TodoController {
    * <p>
    * 받은 데이터로 일정 생성 및 등록
    *
-   * @param dto 요청 데이터
+   * @param dto 등록에 사용할 요청 데이터
    * @return 등록된 일정 정보
    */
   @PostMapping
@@ -66,5 +68,37 @@ public class TodoController {
   @GetMapping("/{id}")
   public ResponseEntity<TodoResponseDto> findTodoById(@PathVariable Long id) {
     return new ResponseEntity<>(this.todoService.findTodoById(id), HttpStatus.OK);
+  }
+
+  /**
+   * 선택 일정 수정 API
+   * <p>
+   * 일정 ID와 패스워드로 조회하며 일정 내용, 작성자명만 수정 가능
+   *
+   * @param id  일정 ID
+   * @param dto 수정에 사용할 요청 데이터
+   * @return 수정된 일정 정보
+   */
+  @PatchMapping("/{id}")
+  public ResponseEntity<TodoResponseDto> updateTodo(@PathVariable Long id,
+      @RequestBody TodoRequestDto dto) {
+    return new ResponseEntity<>(
+        this.todoService.updateTodo(id, dto), HttpStatus.OK
+    );
+  }
+
+  /**
+   * 선택 일정 삭제 API
+   * <p>
+   * 일정 ID와 패스워드로 조회하며 해당 일정 삭제
+   *
+   * @param id  일정 ID
+   * @param dto 삭제에 사용할 요청 데이터
+   * @return 삭제 결과
+   */
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deleteTodo(@PathVariable Long id, @RequestBody TodoRequestDto dto) {
+    this.todoService.deleteTodo(id, dto);
+    return new ResponseEntity<>(HttpStatus.OK);
   }
 }

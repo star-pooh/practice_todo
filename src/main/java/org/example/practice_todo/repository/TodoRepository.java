@@ -5,6 +5,7 @@ import org.example.practice_todo.dto.TodoResponseDto;
 import org.example.practice_todo.entity.Todo;
 
 public interface TodoRepository {
+
   TodoResponseDto createTodo(Todo todo);
 
   List<TodoResponseDto> findAllTodo();
@@ -17,4 +18,8 @@ public interface TodoRepository {
       String writerName, String modifyDate);
 
   Todo findTodoByIdOrElseThrow(Long id);
+
+  int updateTodo(Long id, String contents, String writerName, String password);
+
+  int deleteTodo(Long id, String password);
 }
