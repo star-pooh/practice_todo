@@ -27,6 +27,12 @@ public class TodoRepositoryImpl implements TodoRepository {
     this.jdbcTemplate = new JdbcTemplate(dataSource);
   }
 
+  /**
+   * 일정 등록
+   *
+   * @param todo 요청 데이터로 생성한 일정 정보
+   * @return 등록된 일정 정보
+   */
   @Override
   public TodoResponseDto createTodo(Todo todo) {
     SimpleJdbcInsert jdbcInsert = new SimpleJdbcInsert(this.jdbcTemplate);
@@ -46,6 +52,11 @@ public class TodoRepositoryImpl implements TodoRepository {
     return new TodoResponseDto(key.longValue(), todo.getContents(), todo.getWriterName(), now, now);
   }
 
+  /**
+   * 전체 일정 조회 (작성자명, 수정일 모두 입력이 없는 경우)
+   *
+   * @return 조회된 일정 정보
+   */
   @Override
   public List<TodoResponseDto> findAllTodo() {
     return this.jdbcTemplate.query(
@@ -53,6 +64,12 @@ public class TodoRepositoryImpl implements TodoRepository {
         todoResponseRowMapper());
   }
 
+  /**
+   * 전체 일정 조회 (작성자명만 입력이 있는 경우)
+   *
+   * @param writerName 작성자명
+   * @return 조회된 일정 정보
+   */
   @Override
   public List<TodoResponseDto> findAllTodoWithWriterName(String writerName) {
     return this.jdbcTemplate.query(
@@ -61,6 +78,12 @@ public class TodoRepositoryImpl implements TodoRepository {
         writerName);
   }
 
+  /**
+   * 전체 일정 조회 (수정일만 입력이 있는 경우)
+   *
+   * @param modifyDate 수정일
+   * @return 조회된 일정 정보
+   */
   @Override
   public List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate) {
     String paramModifyDate = modifyDate + "%";
@@ -70,6 +93,13 @@ public class TodoRepositoryImpl implements TodoRepository {
         paramModifyDate);
   }
 
+  /**
+   * 전체 일정 조회 (작성자명, 수정일 모두 입력이 있는 경우)
+   *
+   * @param writerName 작성자명
+   * @param modifyDate 수정일
+   * @return 조회된 일정 정보
+   */
   @Override
   public List<TodoResponseDto> findAllTodoWithWriterNameAndModifyDate(
       String writerName, String modifyDate) {
@@ -81,6 +111,12 @@ public class TodoRepositoryImpl implements TodoRepository {
         paramModifyDate);
   }
 
+  /**
+   * 선택 일정 조회
+   *
+   * @param id 일정 ID
+   * @return 조회된 일정 정보
+   */
   @Override
   public Todo findTodoByIdOrElseThrow(Long id) {
     List<Todo> result =
