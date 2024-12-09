@@ -64,7 +64,9 @@ public class TodoController {
   @GetMapping
   public ResponseEntity<List<TodoResponseDto>> findAllTodo(
       @RequestParam(required = false) String writerName,
-      @RequestParam(required = false) String modifyDate) {
+      @RequestParam(required = false) String modifyDate,
+      @RequestParam(required = false) int pageNumber,
+      @RequestParam(required = false) int pageSize) {
     List<Writer> writerList = new ArrayList<>();
     if (!Objects.isNull(writerName)) {
       writerList = this.writerService.findWriterByName(writerName);
@@ -76,7 +78,7 @@ public class TodoController {
     }
 
     List<TodoResponseDto> todoResponseDtoList = this.todoService.findAllTodo(writerList,
-        modifyDate);
+        modifyDate, pageNumber, pageSize);
     todoResponseDtoList = this.writerService.setWriterName(todoResponseDtoList);
 
     return new ResponseEntity<>(todoResponseDtoList, HttpStatus.OK);

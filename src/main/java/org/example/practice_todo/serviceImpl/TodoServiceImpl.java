@@ -1,6 +1,7 @@
 package org.example.practice_todo.serviceImpl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -10,6 +11,7 @@ import org.example.practice_todo.entity.Todo;
 import org.example.practice_todo.entity.Writer;
 import org.example.practice_todo.repository.TodoRepository;
 import org.example.practice_todo.service.TodoService;
+import org.example.practice_todo.util.Paging;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,27 +46,27 @@ public class TodoServiceImpl implements TodoService {
    *
    * @param writerList 작성자 정보 리스트
    * @param modifyDate 수정일
+   * @param pageNumber 페이지 번호
+   * @param pageSize   페이지 크기
    * @return 조회된 일정 정보
    */
   @Override
-  public List<TodoResponseDto> findAllTodo(List<Writer> writerList, String modifyDate) {
+  public List<TodoResponseDto> findAllTodo(List<Writer> writerList, String modifyDate,
+      int pageNumber, int pageSize) {
     List<TodoResponseDto> todoResponseDtoList = new ArrayList<>();
     // 작성자명의 입력이 없는 경우
     if (writerList.isEmpty() && Objects.isNull(modifyDate)) {
-      todoResponseDtoList.addAll(this.todoRepository.findAllTodo());
+      todoResponseDtoList.addAll(getAllTodo(pageNumber, pageSize));
     } else if (writerList.isEmpty() && !Objects.isNull(modifyDate)) {
-      todoResponseDtoList.addAll(this.todoRepository.findAllTodoWithModifyDate(modifyDate));
+      todoResponseDtoList.addAll(getAllTodoWithModifyDate(pageNumber, pageSize, modifyDate));
     } else {
       // 작성자명의 입력이 있는 경우
-      for (Writer writer : writerList) {
-        Long writerId = writer.getId();
-
-        if (Objects.isNull(modifyDate)) {
-          todoResponseDtoList.addAll(this.todoRepository.findAllTodoWithWriterName(writerId));
-        } else {
-          todoResponseDtoList.addAll(
-              this.todoRepository.findAllTodoWithWriterNameAndModifyDate(writerId, modifyDate));
-        }
+      if (Objects.isNull(modifyDate)) {
+        todoResponseDtoList.addAll(
+            getAllTodoWithWriterId(pageNumber, pageSize, writerList));
+      } else {
+        todoResponseDtoList.addAll(
+            getAllTodoWithWriterIdAndModifyDate(pageNumber, pageSize, writerList, modifyDate));
       }
     }
     todoResponseDtoList.sort(Comparator.comparing(TodoResponseDto::getModifyDate).reversed());
@@ -133,6 +135,141 @@ public class TodoServiceImpl implements TodoService {
     if (deletedRow == 0) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID or Password does not match.");
     }
+  }
+
+  /**
+   * 전체 일정 조회
+   * <p>
+   * 작성자명, 수정일 모두 입력이 없는 경우
+   *
+   * @param pageNumber 페이지 번호
+   * @param pageSize   페이지 크기
+   * @return 조회된 일정 정보
+   */
+  private List<TodoResponseDto> getAllTodo(int pageNumber, int pageSize) {
+    long totalRecords = this.todoRepository.countTotalTodo();
+    Paging paging = createPaging(pageNumber, pageSize, totalRecords);
+
+    // 페이지 범위를 벗어난 요청에 대해서는 빈 값을 반환
+    if (!Objects.isNull(paging)) {
+      return this.todoRepository.findAllTodo(paging);
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  /**
+   * 전체 일정 조회
+   * <p>
+   * 수정일만 입력이 있는 경우
+   *
+   * @param pageNumber 페이지 번호
+   * @param pageSize   페이지 크기
+   * @param modifyDate 수정일
+   * @return 조회된 일정 정보
+   */
+  private List<TodoResponseDto> getAllTodoWithModifyDate(int pageNumber, int pageSize,
+      String modifyDate) {
+    long totalRecords = this.todoRepository.countTotalTodoWithModifyDate(modifyDate);
+    Paging paging = createPaging(pageNumber, pageSize, totalRecords);
+
+    // 페이지 범위를 벗어난 요청에 대해서는 빈 값을 반환
+    if (!Objects.isNull(paging)) {
+      return this.todoRepository.findAllTodoWithModifyDate(modifyDate, paging);
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  /**
+   * 전체 일정 조회
+   * <p>
+   * 작성자명만 입력이 있는 경우
+   *
+   * @param pageNumber 페이지 번호
+   * @param pageSize   페이지 크기
+   * @param writerList 작성자 정보 리스트
+   * @return 조회된 일정 정보
+   */
+  private List<TodoResponseDto> getAllTodoWithWriterId(int pageNumber, int pageSize,
+      List<Writer> writerList) {
+    List<Long> writerIdList = writerList.stream().map(Writer::getId).toList();
+    long totalRecordNum = getTotalRecordNum(writerList, null, false);
+    Paging paging = createPaging(pageNumber, pageSize, totalRecordNum);
+
+    // 페이지 범위를 벗어난 요청에 대해서는 빈 값을 반환
+    if (!Objects.isNull(paging)) {
+      return this.todoRepository.findAllTodoWithWriterId(writerIdList, paging);
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  /**
+   * 전체 일정 조회
+   * <p>
+   * 작성자명, 수정일 모두 입력이 있는 경우
+   *
+   * @param pageNumber 페이지 번호
+   * @param pageSize   페이지 크기
+   * @param writerList 작성자 정보 리스트
+   * @param modifyDate 수정일
+   * @return 조회된 일정 정보
+   */
+  private List<TodoResponseDto> getAllTodoWithWriterIdAndModifyDate(int pageNumber, int pageSize,
+      List<Writer> writerList, String modifyDate) {
+    List<Long> writerIdList = writerList.stream().map(Writer::getId).toList();
+    long totalRecordNum = getTotalRecordNum(writerList, modifyDate, true);
+    Paging paging = createPaging(pageNumber, pageSize, totalRecordNum);
+
+    // 페이지 범위를 벗어난 요청에 대해서는 빈 값을 반환
+    if (!Objects.isNull(paging)) {
+      return this.todoRepository.findAllTodoWithWriterIdAndModifyDate(writerIdList, modifyDate,
+          paging);
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  /**
+   * 페이징 객체 생성
+   *
+   * @param pageNumber   페이지 번호
+   * @param pageSize     페이지 크기
+   * @param totalRecords 총 레코드 수
+   * @return 페이징 객체
+   */
+  private Paging createPaging(int pageNumber, int pageSize, long totalRecords) {
+    Paging paging = new Paging(pageNumber, pageSize, totalRecords);
+
+    // 범위를 넘어선 페이지를 요청하는 경우 빈 객체를 반환
+    if (paging.isPageOutOfRange()) {
+      return null;
+    }
+    return paging;
+  }
+
+  /**
+   * 작성자명, 수정일의 입력에 따른 총 레코드 수를 반환
+   *
+   * @param writerList    작성자 정보 리스트
+   * @param modifyDate    수정일
+   * @param hasModifyDate 수정일 포함 여부
+   * @return 총 레코드 수
+   */
+  private long getTotalRecordNum(List<Writer> writerList, String modifyDate,
+      boolean hasModifyDate) {
+    long totalRecordNum = 0;
+
+    for (Writer writer : writerList) {
+      if (hasModifyDate) {
+        totalRecordNum += this.todoRepository.countTotalTodoWithWriterIdAndModifyDate(
+            writer.getId(), modifyDate);
+      } else {
+        totalRecordNum += this.todoRepository.countTotalTodoWithWriterId(writer.getId());
+      }
+    }
+    return totalRecordNum;
   }
 
 }

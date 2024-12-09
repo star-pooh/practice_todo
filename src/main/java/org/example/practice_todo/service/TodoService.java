@@ -9,7 +9,8 @@ public interface TodoService {
 
   TodoResponseDto createTodo(TodoRequestDto dto);
 
-  List<TodoResponseDto> findAllTodo(List<Writer> writerList, String modifyDate);
+  List<TodoResponseDto> findAllTodo(List<Writer> writerList, String modifyDate, int pageNumber,
+      int pageSize);
 
   TodoResponseDto findTodoById(Long id);
 

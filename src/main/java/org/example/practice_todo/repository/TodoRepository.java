@@ -3,23 +3,32 @@ package org.example.practice_todo.repository;
 import java.util.List;
 import org.example.practice_todo.dto.TodoResponseDto;
 import org.example.practice_todo.entity.Todo;
+import org.example.practice_todo.util.Paging;
 
 public interface TodoRepository {
 
   TodoResponseDto createTodo(Todo todo);
 
-  List<TodoResponseDto> findAllTodo();
+  List<TodoResponseDto> findAllTodo(Paging paging);
 
-  List<TodoResponseDto> findAllTodoWithWriterName(Long writerId);
+  List<TodoResponseDto> findAllTodoWithWriterId(List<Long> writerIdList, Paging paging);
 
-  List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate);
+  List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate, Paging paging);
 
-  List<TodoResponseDto> findAllTodoWithWriterNameAndModifyDate(
-      Long writerId, String modifyDate);
+  List<TodoResponseDto> findAllTodoWithWriterIdAndModifyDate(
+      List<Long> writerIdList, String modifyDate, Paging paging);
 
   Todo findTodoByIdOrElseThrow(Long id);
 
   int updateTodo(Long id, String contents, String password);
 
   int deleteTodo(Long id, String password);
+
+  long countTotalTodo();
+
+  long countTotalTodoWithWriterId(Long writerId);
+
+  long countTotalTodoWithModifyDate(String modifyDate);
+
+  long countTotalTodoWithWriterIdAndModifyDate(Long writerId, String modifyDate);
 }

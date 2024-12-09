@@ -4,6 +4,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +13,7 @@ import javax.sql.DataSource;
 import org.example.practice_todo.dto.TodoResponseDto;
 import org.example.practice_todo.entity.Todo;
 import org.example.practice_todo.repository.TodoRepository;
+import org.example.practice_todo.util.Paging;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -56,60 +59,98 @@ public class TodoRepositoryImpl implements TodoRepository {
   /**
    * 전체 일정 조회 (작성자명, 수정일 모두 입력이 없는 경우)
    *
+   * @param paging 페이징 처리를 위한 정보
    * @return 조회된 일정 정보
    */
   @Override
-  public List<TodoResponseDto> findAllTodo() {
+  public List<TodoResponseDto> findAllTodo(Paging paging) {
     return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_id, create_date, modify_date FROM todo ORDER BY modify_date DESC",
-        todoResponseRowMapper());
+        "SELECT id, contents, writer_id, create_date, modify_date "
+            + "FROM todo "
+            + "ORDER BY modify_date DESC "
+            + "LIMIT ? OFFSET ?",
+        todoResponseRowMapper(),
+        paging.getLimit(),
+        paging.getOffset());
   }
 
   /**
    * 전체 일정 조회 (작성자명만 입력이 있는 경우)
    *
-   * @param writerId 작성자 ID
+   * @param writerIdList 작성자 ID 리스트
+   * @param paging       페이징 처리를 위한 정보
    * @return 조회된 일정 정보
    */
   @Override
-  public List<TodoResponseDto> findAllTodoWithWriterName(Long writerId) {
-    return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE writer_id = ? ORDER BY modify_date DESC",
-        todoResponseRowMapper(),
-        writerId);
+  public List<TodoResponseDto> findAllTodoWithWriterId(List<Long> writerIdList, Paging paging) {
+    String paramWriterId = String.join(",", Collections.nCopies(writerIdList.size(), "?"));
+    String sql = String.format(
+        "SELECT id, contents, writer_id, create_date, modify_date "
+            + "FROM todo "
+            + "WHERE writer_id IN (%s) "
+            + "ORDER BY modify_date DESC "
+            + "LIMIT ? OFFSET ?",
+        paramWriterId
+    );
+
+    List<Object> params = new ArrayList<>(writerIdList);
+    params.add(paging.getLimit());
+    params.add(paging.getOffset());
+
+    return this.jdbcTemplate.query(sql, todoResponseRowMapper(), params.toArray());
   }
 
   /**
    * 전체 일정 조회 (수정일만 입력이 있는 경우)
    *
    * @param modifyDate 수정일
+   * @param paging     페이징 처리를 위한 정보
    * @return 조회된 일정 정보
    */
   @Override
-  public List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate) {
+  public List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate, Paging paging) {
     String paramModifyDate = modifyDate + "%";
     return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE modify_date LIKE ? ORDER BY modify_date DESC",
+        "SELECT id, contents, writer_id, create_date, modify_date "
+            + "FROM todo "
+            + "WHERE modify_date LIKE ? "
+            + "ORDER BY modify_date DESC "
+            + "LIMIT ? OFFSET ?",
         todoResponseRowMapper(),
-        paramModifyDate);
+        paramModifyDate,
+        paging.getLimit(),
+        paging.getOffset());
   }
 
   /**
    * 전체 일정 조회 (작성자명, 수정일 모두 입력이 있는 경우)
    *
-   * @param writerId   작성자 ID
-   * @param modifyDate 수정일
+   * @param writerIdList 작성자 ID 리스트
+   * @param modifyDate   수정일
+   * @param paging       페이징 처리를 위한 정보
    * @return 조회된 일정 정보
    */
   @Override
-  public List<TodoResponseDto> findAllTodoWithWriterNameAndModifyDate(
-      Long writerId, String modifyDate) {
+  public List<TodoResponseDto> findAllTodoWithWriterIdAndModifyDate(
+      List<Long> writerIdList, String modifyDate, Paging paging) {
+    String paramWriterId = String.join(",", Collections.nCopies(writerIdList.size(), "?"));
     String paramModifyDate = modifyDate + "%";
-    return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE writer_id = ? AND modify_date LIKE ? ORDER BY modify_date DESC",
-        todoResponseRowMapper(),
-        writerId,
-        paramModifyDate);
+    String sql = String.format(
+        "SELECT id, contents, writer_id, create_date, modify_date "
+            + "FROM todo "
+            + "WHERE writer_id IN (%s) "
+            + "AND modify_date LIKE ? "
+            + "ORDER BY modify_date DESC "
+            + "LIMIT ? OFFSET ?",
+        paramWriterId
+    );
+
+    List<Object> params = new ArrayList<>(writerIdList);
+    params.add(paramModifyDate);
+    params.add(paging.getLimit());
+    params.add(paging.getOffset());
+
+    return this.jdbcTemplate.query(sql, todoResponseRowMapper(), params.toArray());
   }
 
   /**
@@ -122,7 +163,9 @@ public class TodoRepositoryImpl implements TodoRepository {
   public Todo findTodoByIdOrElseThrow(Long id) {
     List<Todo> result =
         this.jdbcTemplate.query(
-            "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE id = ?",
+            "SELECT id, contents, writer_id, create_date, modify_date "
+                + "FROM todo "
+                + "WHERE id = ?",
             todoRowMapper(),
             id);
 
@@ -146,7 +189,10 @@ public class TodoRepositoryImpl implements TodoRepository {
     String now = LocalDateTime.now().format(dateTimeFormatter);
 
     return this.jdbcTemplate.update(
-        "UPDATE todo SET contents = ?, modify_date = ? WHERE id = ? AND password = ?",
+        "UPDATE todo "
+            + "SET contents = ?, modify_date = ? "
+            + "WHERE id = ? "
+            + "AND password = ?",
         contents, now, id, password);
   }
 
@@ -160,9 +206,62 @@ public class TodoRepositoryImpl implements TodoRepository {
   @Override
   public int deleteTodo(Long id, String password) {
     return this.jdbcTemplate.update(
-        "DELETE FROM todo WHERE id = ? AND password = ?", id, password
+        "DELETE FROM todo "
+            + "WHERE id = ? "
+            + "AND password = ?", id, password
     );
   }
+
+  /**
+   * 전체 레코드 수 조회(작성자명, 수정일 모두 입력이 없는 경우)
+   *
+   * @return 전체 레코드 수
+   */
+  @Override
+  public long countTotalTodo() {
+    return this.jdbcTemplate.queryForObject("SELECT COUNT(*) FROM todo", Long.class);
+  }
+
+  /**
+   * 전체 레코드 수 조회(작성자명만 입력이 있는 경우)
+   *
+   * @param writerId 작성자 ID
+   * @return 전체 레코드 수
+   */
+  @Override
+  public long countTotalTodoWithWriterId(Long writerId) {
+    return this.jdbcTemplate.queryForObject(
+        "SELECT COUNT(*) FROM todo WHERE writer_id = ?",
+        Long.class, writerId);
+  }
+
+  /**
+   * 전체 레코드 수 조회(수정일만 입력이 있는 경우)
+   *
+   * @param modifyDate 수정일
+   * @return 전체 레코드 수
+   */
+  @Override
+  public long countTotalTodoWithModifyDate(String modifyDate) {
+    return this.jdbcTemplate.queryForObject(
+        "SELECT COUNT(*) FROM todo WHERE modify_date = ?",
+        Long.class, modifyDate);
+  }
+
+  /**
+   * 전체 레코드 수 조회(작성자명, 수정일 모두 입력이 있는 경우)
+   *
+   * @param writerId   작성자 ID
+   * @param modifyDate 수정일
+   * @return 전체 레코드 수
+   */
+  @Override
+  public long countTotalTodoWithWriterIdAndModifyDate(Long writerId, String modifyDate) {
+    return this.jdbcTemplate.queryForObject(
+        "SELECT COUNT(*) FROM todo WHERE writer_id = ? AND modify_date = ?",
+        Long.class, writerId, modifyDate);
+  }
+
 
   private RowMapper<TodoResponseDto> todoResponseRowMapper() {
     return new RowMapper<TodoResponseDto>() {
