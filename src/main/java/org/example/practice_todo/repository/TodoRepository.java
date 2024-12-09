@@ -10,16 +10,16 @@ public interface TodoRepository {
 
   List<TodoResponseDto> findAllTodo();
 
-  List<TodoResponseDto> findAllTodoWithWriterName(String writerName);
+  List<TodoResponseDto> findAllTodoWithWriterName(Long writerId);
 
   List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate);
 
   List<TodoResponseDto> findAllTodoWithWriterNameAndModifyDate(
-      String writerName, String modifyDate);
+      Long writerId, String modifyDate);
 
   Todo findTodoByIdOrElseThrow(Long id);
 
-  int updateTodo(Long id, String contents, String writerName, String password);
+  int updateTodo(Long id, String contents, String password);
 
   int deleteTodo(Long id, String password);
 }

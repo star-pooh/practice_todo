@@ -1,4 +1,4 @@
-package org.example.practice_todo.repository;
+package org.example.practice_todo.repositoryImpl;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -10,6 +10,7 @@ import java.util.Map;
 import javax.sql.DataSource;
 import org.example.practice_todo.dto.TodoResponseDto;
 import org.example.practice_todo.entity.Todo;
+import org.example.practice_todo.repository.TodoRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -43,13 +44,13 @@ public class TodoRepositoryImpl implements TodoRepository {
 
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("contents", todo.getContents());
-    parameters.put("writer_name", todo.getWriterName());
+    parameters.put("writer_id", todo.getWriterId());
     parameters.put("password", todo.getPassword());
     parameters.put("create_date", now);
     parameters.put("modify_date", now);
 
     Number key = jdbcInsert.executeAndReturnKey(new MapSqlParameterSource(parameters));
-    return new TodoResponseDto(key.longValue(), todo.getContents(), todo.getWriterName(), now, now);
+    return new TodoResponseDto(key.longValue(), todo.getContents(), todo.getWriterId(), now, now);
   }
 
   /**
@@ -60,22 +61,22 @@ public class TodoRepositoryImpl implements TodoRepository {
   @Override
   public List<TodoResponseDto> findAllTodo() {
     return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_name, create_date, modify_date FROM todo ORDER BY modify_date DESC",
+        "SELECT id, contents, writer_id, create_date, modify_date FROM todo ORDER BY modify_date DESC",
         todoResponseRowMapper());
   }
 
   /**
    * 전체 일정 조회 (작성자명만 입력이 있는 경우)
    *
-   * @param writerName 작성자명
+   * @param writerId 작성자 ID
    * @return 조회된 일정 정보
    */
   @Override
-  public List<TodoResponseDto> findAllTodoWithWriterName(String writerName) {
+  public List<TodoResponseDto> findAllTodoWithWriterName(Long writerId) {
     return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_name, create_date, modify_date FROM todo WHERE writer_name = ? ORDER BY modify_date DESC",
+        "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE writer_id = ? ORDER BY modify_date DESC",
         todoResponseRowMapper(),
-        writerName);
+        writerId);
   }
 
   /**
@@ -88,7 +89,7 @@ public class TodoRepositoryImpl implements TodoRepository {
   public List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate) {
     String paramModifyDate = modifyDate + "%";
     return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_name, create_date, modify_date FROM todo WHERE modify_date LIKE ? ORDER BY modify_date DESC",
+        "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE modify_date LIKE ? ORDER BY modify_date DESC",
         todoResponseRowMapper(),
         paramModifyDate);
   }
@@ -96,18 +97,18 @@ public class TodoRepositoryImpl implements TodoRepository {
   /**
    * 전체 일정 조회 (작성자명, 수정일 모두 입력이 있는 경우)
    *
-   * @param writerName 작성자명
+   * @param writerId   작성자 ID
    * @param modifyDate 수정일
    * @return 조회된 일정 정보
    */
   @Override
   public List<TodoResponseDto> findAllTodoWithWriterNameAndModifyDate(
-      String writerName, String modifyDate) {
+      Long writerId, String modifyDate) {
     String paramModifyDate = modifyDate + "%";
     return this.jdbcTemplate.query(
-        "SELECT id, contents, writer_name, create_date, modify_date FROM todo WHERE writer_name = ? AND modify_date LIKE ? ORDER BY modify_date DESC",
+        "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE writer_id = ? AND modify_date LIKE ? ORDER BY modify_date DESC",
         todoResponseRowMapper(),
-        writerName,
+        writerId,
         paramModifyDate);
   }
 
@@ -121,7 +122,7 @@ public class TodoRepositoryImpl implements TodoRepository {
   public Todo findTodoByIdOrElseThrow(Long id) {
     List<Todo> result =
         this.jdbcTemplate.query(
-            "SELECT id, contents, writer_name, create_date, modify_date FROM todo WHERE id = ?",
+            "SELECT id, contents, writer_id, create_date, modify_date FROM todo WHERE id = ?",
             todoRowMapper(),
             id);
 
@@ -134,20 +135,19 @@ public class TodoRepositoryImpl implements TodoRepository {
   /**
    * 선택 일정 수정
    *
-   * @param id         일정 ID
-   * @param contents   일정 내용
-   * @param writerName 작성자명
-   * @param password   패스워드
+   * @param id       일정 ID
+   * @param contents 일정 내용
+   * @param password 패스워드
    * @return 수정 결과
    */
   @Override
-  public int updateTodo(Long id, String contents, String writerName, String password) {
+  public int updateTodo(Long id, String contents, String password) {
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     String now = LocalDateTime.now().format(dateTimeFormatter);
 
     return this.jdbcTemplate.update(
-        "UPDATE todo SET contents = ?, writer_name = ?, modify_date = ? WHERE id = ? AND password = ?",
-        contents, writerName, now, id, password);
+        "UPDATE todo SET contents = ?, modify_date = ? WHERE id = ? AND password = ?",
+        contents, now, id, password);
   }
 
   /**
@@ -171,7 +171,7 @@ public class TodoRepositoryImpl implements TodoRepository {
         return new TodoResponseDto(
             rs.getLong("id"),
             rs.getString("contents"),
-            rs.getString("writer_name"),
+            rs.getLong("writer_id"),
             rs.getString("create_date"),
             rs.getString("modify_date"));
       }
@@ -185,7 +185,7 @@ public class TodoRepositoryImpl implements TodoRepository {
         return new Todo(
             rs.getLong("id"),
             rs.getString("contents"),
-            rs.getString("writer_name"),
+            rs.getLong("writer_id"),
             rs.getString("create_date"),
             rs.getString("modify_date"));
       }

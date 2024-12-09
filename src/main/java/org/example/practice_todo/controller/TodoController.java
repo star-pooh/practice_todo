@@ -1,9 +1,13 @@
 package org.example.practice_todo.controller;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.example.practice_todo.dto.TodoRequestDto;
 import org.example.practice_todo.dto.TodoResponseDto;
+import org.example.practice_todo.entity.Writer;
 import org.example.practice_todo.service.TodoService;
+import org.example.practice_todo.service.WriterService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,11 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/todos")
 public class TodoController {
 
-  // 일정 관리 앱 서비스
+  // 일정 관리 서비스
   private final TodoService todoService;
+  // 작성자 서비스
+  private final WriterService writerService;
 
-  public TodoController(TodoService todoService) {
+  public TodoController(TodoService todoService, WriterService writerService) {
     this.todoService = todoService;
+    this.writerService = writerService;
   }
 
   /**
@@ -37,7 +44,12 @@ public class TodoController {
    */
   @PostMapping
   public ResponseEntity<TodoResponseDto> createTodo(@RequestBody TodoRequestDto dto) {
-    return new ResponseEntity<>(this.todoService.createTodo(dto), HttpStatus.CREATED);
+    Writer writer = this.writerService.findWriterById(dto.getWriterId());
+
+    TodoResponseDto todoResponseDto = this.todoService.createTodo(dto);
+    todoResponseDto.setWriterName(writer.getName());
+
+    return new ResponseEntity<>(todoResponseDto, HttpStatus.CREATED);
   }
 
   /**
@@ -53,8 +65,21 @@ public class TodoController {
   public ResponseEntity<List<TodoResponseDto>> findAllTodo(
       @RequestParam(required = false) String writerName,
       @RequestParam(required = false) String modifyDate) {
-    return new ResponseEntity<>(
-        this.todoService.findAllTodo(writerName, modifyDate), HttpStatus.OK);
+    List<Writer> writerList = new ArrayList<>();
+    if (!Objects.isNull(writerName)) {
+      writerList = this.writerService.findWriterByName(writerName);
+
+      // 작성자 정보 테이블에 일치하는 작성자명이 없는 경우
+      if (writerList.isEmpty()) {
+        return new ResponseEntity<>(null, HttpStatus.OK);
+      }
+    }
+
+    List<TodoResponseDto> todoResponseDtoList = this.todoService.findAllTodo(writerList,
+        modifyDate);
+    todoResponseDtoList = this.writerService.setWriterName(todoResponseDtoList);
+
+    return new ResponseEntity<>(todoResponseDtoList, HttpStatus.OK);
   }
 
   /**
@@ -67,7 +92,12 @@ public class TodoController {
    */
   @GetMapping("/{id}")
   public ResponseEntity<TodoResponseDto> findTodoById(@PathVariable Long id) {
-    return new ResponseEntity<>(this.todoService.findTodoById(id), HttpStatus.OK);
+    TodoResponseDto todoResponseDto = this.todoService.findTodoById(id);
+
+    Writer writer = this.writerService.findWriterById(todoResponseDto.getWriterId());
+    todoResponseDto.setWriterName(writer.getName());
+
+    return new ResponseEntity<>(todoResponseDto, HttpStatus.OK);
   }
 
   /**
@@ -82,9 +112,12 @@ public class TodoController {
   @PatchMapping("/{id}")
   public ResponseEntity<TodoResponseDto> updateTodo(@PathVariable Long id,
       @RequestBody TodoRequestDto dto) {
-    return new ResponseEntity<>(
-        this.todoService.updateTodo(id, dto), HttpStatus.OK
-    );
+    TodoResponseDto todoResponseDto = this.todoService.updateTodo(id, dto);
+
+    Writer writer = this.writerService.findWriterById(todoResponseDto.getWriterId());
+    todoResponseDto.setWriterName(writer.getName());
+
+    return new ResponseEntity<>(todoResponseDto, HttpStatus.OK);
   }
 
   /**

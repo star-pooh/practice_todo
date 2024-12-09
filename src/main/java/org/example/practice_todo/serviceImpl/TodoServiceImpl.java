@@ -1,11 +1,15 @@
-package org.example.practice_todo.service;
+package org.example.practice_todo.serviceImpl;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import org.example.practice_todo.dto.TodoRequestDto;
 import org.example.practice_todo.dto.TodoResponseDto;
 import org.example.practice_todo.entity.Todo;
+import org.example.practice_todo.entity.Writer;
 import org.example.practice_todo.repository.TodoRepository;
+import org.example.practice_todo.service.TodoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +33,7 @@ public class TodoServiceImpl implements TodoService {
    */
   @Override
   public TodoResponseDto createTodo(TodoRequestDto dto) {
-    Todo todo = new Todo(dto.getContents(), dto.getWriterName(), dto.getPassword());
+    Todo todo = new Todo(dto.getContents(), dto.getWriterId(), dto.getPassword());
     return this.todoRepository.createTodo(todo);
   }
 
@@ -38,21 +42,33 @@ public class TodoServiceImpl implements TodoService {
    * <p>
    * 작성자명, 수정일의 입력에 따라 조회 결과가 다름
    *
-   * @param writerName 작성자명
+   * @param writerList 작성자 정보 리스트
    * @param modifyDate 수정일
    * @return 조회된 일정 정보
    */
   @Override
-  public List<TodoResponseDto> findAllTodo(String writerName, String modifyDate) {
-    if (!Objects.isNull(writerName) && Objects.isNull(modifyDate)) {
-      return this.todoRepository.findAllTodoWithWriterName(writerName);
-    } else if (Objects.isNull(writerName) && !Objects.isNull(modifyDate)) {
-      return this.todoRepository.findAllTodoWithModifyDate(modifyDate);
-    } else if (!Objects.isNull(writerName) && !Objects.isNull(modifyDate)) {
-      return this.todoRepository.findAllTodoWithWriterNameAndModifyDate(writerName, modifyDate);
+  public List<TodoResponseDto> findAllTodo(List<Writer> writerList, String modifyDate) {
+    List<TodoResponseDto> todoResponseDtoList = new ArrayList<>();
+    // 작성자명의 입력이 없는 경우
+    if (writerList.isEmpty() && Objects.isNull(modifyDate)) {
+      todoResponseDtoList.addAll(this.todoRepository.findAllTodo());
+    } else if (writerList.isEmpty() && !Objects.isNull(modifyDate)) {
+      todoResponseDtoList.addAll(this.todoRepository.findAllTodoWithModifyDate(modifyDate));
     } else {
-      return this.todoRepository.findAllTodo();
+      // 작성자명의 입력이 있는 경우
+      for (Writer writer : writerList) {
+        Long writerId = writer.getId();
+
+        if (Objects.isNull(modifyDate)) {
+          todoResponseDtoList.addAll(this.todoRepository.findAllTodoWithWriterName(writerId));
+        } else {
+          todoResponseDtoList.addAll(
+              this.todoRepository.findAllTodoWithWriterNameAndModifyDate(writerId, modifyDate));
+        }
+      }
     }
+    todoResponseDtoList.sort(Comparator.comparing(TodoResponseDto::getModifyDate).reversed());
+    return todoResponseDtoList;
   }
 
   /**
@@ -72,7 +88,7 @@ public class TodoServiceImpl implements TodoService {
   /**
    * 선택 일정 수정
    * <p>
-   * 일정 ID와 패스워드로 조회하며 일정 내용, 작성자명만 수정
+   * 일정 ID와 패스워드로 조회하며 일정 내용만 수정
    *
    * @param id  일정 ID
    * @param dto 수정에 사용할 요청 데이터
@@ -81,14 +97,13 @@ public class TodoServiceImpl implements TodoService {
   @Transactional
   @Override
   public TodoResponseDto updateTodo(Long id, TodoRequestDto dto) {
-    if (Objects.isNull(dto.getContents()) || Objects.isNull(dto.getWriterName()) || Objects.isNull(
+    if (Objects.isNull(dto.getContents()) || Objects.isNull(
         dto.getPassword())) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "contents, writerName and password are required values.");
+          "contents and password are required values.");
     }
 
-    int updatedRow = this.todoRepository.updateTodo(id, dto.getContents(), dto.getWriterName(),
-        dto.getPassword());
+    int updatedRow = this.todoRepository.updateTodo(id, dto.getContents(), dto.getPassword());
 
     if (updatedRow == 0) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID or Password does not match.");
