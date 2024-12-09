@@ -1,5 +1,6 @@
 package org.example.practice_todo.controller;
 
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -43,7 +44,7 @@ public class TodoController {
    * @return 등록된 일정 정보
    */
   @PostMapping
-  public ResponseEntity<TodoResponseDto> createTodo(@RequestBody TodoRequestDto dto) {
+  public ResponseEntity<TodoResponseDto> createTodo(@Valid @RequestBody TodoRequestDto dto) {
     Writer writer = this.writerService.findWriterById(dto.getWriterId());
 
     TodoResponseDto todoResponseDto = this.todoService.createTodo(dto);
