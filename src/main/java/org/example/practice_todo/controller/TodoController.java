@@ -66,8 +66,8 @@ public class TodoController {
   public ResponseEntity<List<TodoResponseDto>> findAllTodo(
       @RequestParam(required = false) String writerName,
       @RequestParam(required = false) String modifyDate,
-      @RequestParam(required = false) int pageNumber,
-      @RequestParam(required = false) int pageSize) {
+      @RequestParam(required = false, defaultValue = "1") int pageNumber,
+      @RequestParam(required = false, defaultValue = "10") int pageSize) {
     List<Writer> writerList = new ArrayList<>();
     if (!Objects.isNull(writerName)) {
       writerList = this.writerService.findWriterByName(writerName);
