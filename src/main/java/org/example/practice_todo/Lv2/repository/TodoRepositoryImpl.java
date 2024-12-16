@@ -87,8 +87,10 @@ public class TodoRepositoryImpl implements TodoRepository {
   @Override
   public List<TodoResponseDto> findAllTodoWithModifyDate(String modifyDate) {
     String paramModifyDate = modifyDate + "%";
+
     return this.jdbcTemplate.query(
         "SELECT id, contents, writer_name, create_date, modify_date FROM todo WHERE modify_date LIKE ? ORDER BY modify_date DESC",
+
         todoResponseRowMapper(),
         paramModifyDate);
   }
